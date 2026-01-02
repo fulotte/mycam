@@ -4,24 +4,35 @@
 #include "camera.h"
 #include "wifi_manager.h"
 #include "http_server.h"
+#include "motion_detector.h"
 #include "wifi_config.h"
 
 Camera camera;
 WiFiManager wifiManager;
 HTTPServer httpServer;
+MotionDetector motionDetector;
 
-// 全局缓冲区指针
 camera_fb_t* g_currentFb = nullptr;
+bool g_motionDetected = false;
 
 void captureTask(void* parameter) {
     while (true) {
         if (camera.capture()) {
-            // 释放旧缓冲区
             if (g_currentFb != nullptr) {
                 esp_camera_fb_return(g_currentFb);
             }
             g_currentFb = camera.getBuffer();
             httpServer.setBuffer(g_currentFb);
+
+            // 运动检测
+            if (motionDetector.detect(g_currentFb)) {
+                if (!g_motionDetected) {
+                    g_motionDetected = true;
+                    Serial.println("Motion detected!");
+                }
+            } else {
+                g_motionDetected = false;
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(1000 / STREAM_FPS));
     }
@@ -36,6 +47,8 @@ void setup() {
         delay(1000);
         ESP.restart();
     }
+
+    motionDetector.init();
 
     if (!wifiManager.begin(WIFI_SSID, WIFI_PASSWORD)) {
         Serial.println("WiFi connection failed, restarting...");
