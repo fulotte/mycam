@@ -15,7 +15,15 @@ mycam-repo/
 
 ## 快速开始
 
-详见 [PRD 文档](docs/plans/2025-01-02-cams3-monitor-prd.md)
+### WiFi 配置
+
+1. 给 CamS3 设备上电
+2. 手机连接 WiFi "MyCam-xxxxxx"
+3. 浏览器自动打开配置页面（或访问 http://192.164.4.1）
+4. 选择目标 WiFi 并输入密码
+5. 等待连接成功
+
+详细说明请查看 [WiFi Provisioning 指南](docs/WIFI_PROVISIONING.md)
 
 ## 开发状态
 
