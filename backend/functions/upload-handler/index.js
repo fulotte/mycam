@@ -2,6 +2,8 @@
 
 const TableStore = require('tablestore');
 const axios = require('axios');
+const { AppError, ErrorHandler } = require('../../shared/error-handler');
+const Logger = require('../../shared/logger');
 
 // 从环境变量获取配置
 const OTS_INSTANCE = process.env.OTS_INSTANCE;
@@ -24,13 +26,13 @@ async function triggerNotification(imageData) {
   const NOTIFY_FUNCTION_URL = process.env.NOTIFY_FUNCTION_URL;
 
   if (!NOTIFY_FUNCTION_URL) {
-    console.log('NOTIFY_FUNCTION_URL not configured, skipping notification');
+    Logger.warn('NOTIFY_FUNCTION_URL not configured, skipping notification');
     return;
   }
 
   // 只在检测到运动时发送通知
   if (!imageData.has_motion) {
-    console.log('No motion detected, skipping notification');
+    Logger.debug('No motion detected, skipping notification');
     return;
   }
 
@@ -40,11 +42,11 @@ async function triggerNotification(imageData) {
       headers: { 'Content-Type': 'application/json' },
       timeout: 3000
     }).catch(err => {
-      console.error('Notification request failed (async):', err.message);
+      Logger.error('Notification request failed (async)', { error: err.message });
     });
-    console.log('Notification triggered');
+    Logger.info('Notification triggered');
   } catch (error) {
-    console.error('Failed to trigger notification:', error.message);
+    Logger.error('Failed to trigger notification', { error: error.message });
   }
 }
 
@@ -52,9 +54,9 @@ async function triggerNotification(imageData) {
  * 处理图片上传元数据
  */
 module.exports.handler = async (event, context) => {
-  console.log('Received event:', JSON.stringify(event, null, 2));
-
   try {
+    Logger.info('Upload handler invoked', { event });
+
     // 解析请求体
     const body = JSON.parse(event.body || '{}');
 
@@ -62,11 +64,7 @@ module.exports.handler = async (event, context) => {
     const { device_id, oss_path_original, oss_path_thumbnail, has_motion, image_size } = body;
 
     if (!device_id || !oss_path_original) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Missing required fields' }),
-        headers: { 'Content-Type': 'application/json' }
-      };
+      throw new AppError('Missing required fields: device_id or oss_path_original', 400);
     }
 
     // 生成 row_key (timestamp + random suffix)
@@ -98,7 +96,7 @@ module.exports.handler = async (event, context) => {
       });
     });
 
-    console.log('Image metadata saved successfully');
+    Logger.info('Image metadata saved successfully', { rowKey, device_id });
 
     // 触发通知（异步，不等待结果）
     triggerNotification({
@@ -122,15 +120,7 @@ module.exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Error processing upload:', error);
-
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: 'Internal server error',
-        message: error.message
-      }),
-      headers: { 'Content-Type': 'application/json' }
-    };
+    await ErrorHandler.handleError(error, { event });
+    return ErrorHandler.response(error);
   }
 };
