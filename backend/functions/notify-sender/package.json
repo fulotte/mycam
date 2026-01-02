@@ -1,7 +1,7 @@
 {
-  "name": "upload-handler",
+  "name": "notify-sender",
   "version": "1.0.0",
-  "description": "Handle image upload metadata for MyCam",
+  "description": "Send notifications to Feishu and Dingtalk",
   "main": "index.js",
   "dependencies": {
     "tablestore": "^5.4.0",

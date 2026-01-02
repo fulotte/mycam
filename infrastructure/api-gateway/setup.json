@@ -26,6 +26,24 @@
       "path": "/api/v1/device/register",
       "method": "POST",
       "function": "device-manager"
+    },
+    {
+      "name": "device-config-get",
+      "path": "/api/v1/device/{device_id}/config",
+      "method": "GET",
+      "function": "device-config"
+    },
+    {
+      "name": "device-config-update",
+      "path": "/api/v1/device/{device_id}/config",
+      "method": "POST",
+      "function": "device-config"
+    },
+    {
+      "name": "device-config-patch",
+      "path": "/api/v1/device/{device_id}/config",
+      "method": "PATCH",
+      "function": "device-config"
     }
   ]
 }

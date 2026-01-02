@@ -1,6 +1,7 @@
 // backend/functions/upload-handler/index.js
 
 const TableStore = require('tablestore');
+const axios = require('axios');
 
 // 从环境变量获取配置
 const OTS_INSTANCE = process.env.OTS_INSTANCE;
@@ -15,6 +16,37 @@ const otsClient = new TableStore.Client({
   endpoint: OTS_ENDPOINT,
   instancename: OTS_INSTANCE,
 });
+
+/**
+ * 触发通知函数
+ */
+async function triggerNotification(imageData) {
+  const NOTIFY_FUNCTION_URL = process.env.NOTIFY_FUNCTION_URL;
+
+  if (!NOTIFY_FUNCTION_URL) {
+    console.log('NOTIFY_FUNCTION_URL not configured, skipping notification');
+    return;
+  }
+
+  // 只在检测到运动时发送通知
+  if (!imageData.has_motion) {
+    console.log('No motion detected, skipping notification');
+    return;
+  }
+
+  try {
+    // 异步调用，不等待结果
+    axios.post(NOTIFY_FUNCTION_URL, imageData, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 3000
+    }).catch(err => {
+      console.error('Notification request failed (async):', err.message);
+    });
+    console.log('Notification triggered');
+  } catch (error) {
+    console.error('Failed to trigger notification:', error.message);
+  }
+}
 
 /**
  * 处理图片上传元数据
@@ -67,6 +99,16 @@ module.exports.handler = async (event, context) => {
     });
 
     console.log('Image metadata saved successfully');
+
+    // 触发通知（异步，不等待结果）
+    triggerNotification({
+      device_id,
+      oss_path_original,
+      oss_path_thumbnail,
+      has_motion,
+      image_size,
+      created_at: timestamp
+    });
 
     // 返回成功
     return {

@@ -1,0 +1,9 @@
+{
+  "name": "device-config",
+  "version": "1.0.0",
+  "description": "Device configuration management",
+  "main": "index.js",
+  "dependencies": {
+    "tablestore": "^5.4.0"
+  }
+}
