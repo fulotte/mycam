@@ -7,11 +7,17 @@
 #include "wifi_manager.h"
 #include "http_server.h"
 #include "motion_detector.h"
-#include "wifi_config.h"
 #include "logger.h"
+#include "config_storage.h"
+#include "wifi_scanner.h"
+#include "provisioning_manager.h"
+#include "captive_portal.h"
 
 Camera camera;
 WiFiManager wifiManager;
+LittleFSConfigStorage storage;
+WiFiScanner wifiScanner;
+ProvisioningManager* provManager = nullptr;
 HTTPServer httpServer;
 MotionDetector motionDetector;
 
@@ -75,23 +81,29 @@ void setup() {
     motionDetector.init();
     Logger::info("MAIN", "Motion detector initialized");
 
-    if (!wifiManager.begin(WIFI_SSID, WIFI_PASSWORD)) {
-        Logger::error("MAIN", "WiFi connection failed, restarting...");
+    // Provisioning 管理
+    provManager = new ProvisioningManager(&storage, wifiManager);
+    if (!provManager->begin()) {
+        Logger::error("MAIN", "Provisioning failed, restarting...");
         delay(5000);
         ESP.restart();
     }
-    Logger::info("MAIN", "WiFi connected");
+
+    // 设置 HTTP 服务依赖
+    httpServer.setProvisioningManager(provManager);
+    httpServer.setWiFiScanner(&wifiScanner);
 
     httpServer.begin();
     Logger::info("MAIN", "HTTP server started");
 
     // 启动 mDNS 服务
-    if (MDNS.begin(MDNS_NAME)) {
+    // mDNS 只在 STA 模式下启动
+    if (provManager->getState() == STA_CONNECTED && MDNS.begin(MDNS_NAME)) {
         Logger::info("MAIN", "mDNS responder started: http://%s.local/", MDNS_NAME);
-    } else {
-        Logger::error("MAIN", "Error setting up MDNS responder!");
+        MDNS.addService("http", "tcp", HTTP_PORT);
+    } else if (provManager->getState() == AP_PROVISIONING) {
+        Logger::info("MAIN", "AP mode: connect to WiFi and open browser");
     }
-    MDNS.addService("http", "tcp", HTTP_PORT);
 
     // 创建采集任务
     xTaskCreateUniversal(
@@ -120,5 +132,8 @@ void setup() {
 
 void loop() {
     wifiManager.update();
+    if (provManager) {
+        provManager->update();
+    }
     vTaskDelay(100);
 }
