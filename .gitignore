@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pio/
+__pycache__/
+
+# Build outputs
+dist/
+build/
+*.bin
+*.elf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+.cache/
