@@ -1,5 +1,6 @@
 // firmware/src/main.cpp
 #include <Arduino.h>
+#include <LittleFS.h>
 #include <ESPmDNS.h>
 #include "config.h"
 #include "camera.h"
@@ -51,6 +52,13 @@ void captureTask(void* parameter) {
 void setup() {
     Serial.begin(115200);
     Logger::info("MAIN", "CamS3 Monitor starting...");
+
+    // 在 setup() 中 Serial.begin 后添加
+    if (!LittleFS.begin(true)) {
+        Logger::error("MAIN", "LittleFS mount failed!");
+    } else {
+        Logger::info("MAIN", "LittleFS mounted");
+    }
 
     // 初始化看门狗
     esp_task_wdt_init(10, true);
