@@ -2,8 +2,11 @@
 #include <Arduino.h>
 #include "config.h"
 #include "camera.h"
+#include "wifi_manager.h"
+#include "wifi_config.h"
 
 Camera camera;
+WiFiManager wifiManager;
 
 void setup() {
     Serial.begin(115200);
@@ -15,9 +18,16 @@ void setup() {
         ESP.restart();
     }
 
+    if (!wifiManager.begin(WIFI_SSID, WIFI_PASSWORD)) {
+        Serial.println("WiFi connection failed, restarting...");
+        delay(5000);
+        ESP.restart();
+    }
+
     Serial.println("Setup complete, entering main loop...");
 }
 
 void loop() {
-    vTaskDelay(portMAX_DELAY);
+    wifiManager.update();
+    vTaskDelay(100);
 }
