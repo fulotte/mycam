@@ -29,3 +29,6 @@ Thumbs.db
 # Temporary
 *.tmp
 .cache/
+
+# Git worktrees
+.worktrees/
