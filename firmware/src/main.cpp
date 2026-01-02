@@ -1,5 +1,6 @@
 // firmware/src/main.cpp
 #include <Arduino.h>
+#include <ESPmDNS.h>
 #include "config.h"
 #include "camera.h"
 #include "wifi_manager.h"
@@ -57,6 +58,14 @@ void setup() {
     }
 
     httpServer.begin();
+
+    // 启动 mDNS 服务
+    if (MDNS.begin(MDNS_NAME)) {
+        Serial.printf("mDNS responder started: http://%s.local/\n", MDNS_NAME);
+    } else {
+        Serial.println("Error setting up MDNS responder!");
+    }
+    MDNS.addService("http", "tcp", HTTP_PORT);
 
     // 创建采集任务
     xTaskCreateUniversal(
