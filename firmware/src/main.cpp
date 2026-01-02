@@ -53,7 +53,7 @@ void setup() {
     Serial.begin(115200);
     Logger::info("MAIN", "CamS3 Monitor starting...");
 
-    // 在 setup() 中 Serial.begin 后添加
+    // 初始化 LittleFS 文件系统
     if (!LittleFS.begin(true)) {
         Logger::error("MAIN", "LittleFS mount failed!");
     } else {
