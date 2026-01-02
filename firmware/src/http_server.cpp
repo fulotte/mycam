@@ -2,6 +2,10 @@
 #include "http_server.h"
 #include "camera.h"
 #include "config.h"
+#include "provisioning_manager.h"
+#include "wifi_scanner.h"
+#include "logger.h"
+#include <ArduinoJson.h>
 
 // 外部引用运动检测状态
 extern bool g_motionDetected;
@@ -114,4 +118,95 @@ void HTTPServer::setupRoutes() {
     server.on("/health", HTTP_GET, [](AsyncWebServerRequest* request) {
         request->send(200, "application/json", "{\"status\":\"ok\"}");
     });
+
+    setupProvisioningRoutes();
+}
+
+void HTTPServer::setupProvisioningRoutes() {
+    if (!provManager || !wifiScanner) return;
+
+    // 扫描 WiFi
+    server.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest* request) {
+        NetworkInfo networks[20];
+        int count = wifiScanner->scan(networks, 20);
+
+        StaticJsonDocument<2048> doc;
+        JsonArray arr = doc.createNestedArray("networks");
+
+        for (int i = 0; i < count; i++) {
+            JsonObject net = arr.createNestedObject();
+            net["ssid"] = networks[i].ssid;
+            net["rssi"] = networks[i].rssi;
+            net["encrypted"] = networks[i].encrypted;
+        }
+
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
+    });
+
+    // 获取当前配置
+    server.on("/api/wifi/config", HTTP_GET, [](AsyncWebServerRequest* request) {
+        WiFiConfig config;
+        bool hasConfig = false;
+
+        // 从当前连接获取
+        if (WiFi.isConnected()) {
+            StaticJsonDocument<256> doc;
+            doc["ssid"] = WiFi.SSID();
+            doc["hasConfig"] = true;
+            doc["mode"] = "STA";
+
+            String response;
+            serializeJson(doc, response);
+            request->send(200, "application/json", response);
+        } else {
+            request->send(200, "application/json", "{\"hasConfig\":false,\"mode\":\"AP\"}");
+        }
+    });
+
+    // 保存配置并连接
+    server.on("/api/wifi/config", HTTP_POST, [](AsyncWebServerRequest* request) {
+        if (!request->hasParam("ssid", true) || !request->hasParam("password", true)) {
+            request->send(400, "application/json", "{\"success\":false,\"error\":\"MISSING_PARAMS\"}");
+            return;
+        }
+
+        String ssid = request->getParam("ssid", true)->value();
+        String password = request->getParam("password", true)->value();
+
+        if (provManager->saveAndConnect(ssid.c_str(), password.c_str())) {
+            request->send(200, "application/json", "{\"success\":true,\"message\":\"Connecting...\"}");
+        } else {
+            request->send(500, "application/json", "{\"success\":false,\"error\":\"STORAGE_ERROR\"}");
+        }
+    });
+
+    // 重置配置
+    server.on("/api/wifi/reset", HTTP_POST, [](AsyncWebServerRequest* request) {
+        if (provManager->resetConfig()) {
+            request->send(200, "application/json", "{\"success\":true}");
+        } else {
+            request->send(500, "application/json", "{\"success\":false,\"error\":\"RESET_FAILED\"}");
+        }
+    });
+
+    // 获取状态
+    server.on("/api/wifi/status", HTTP_GET, [](AsyncWebServerRequest* request) {
+        StaticJsonDocument<512> doc;
+        doc["connected"] = WiFi.isConnected();
+        doc["mode"] = (WiFi.getMode() == WIFI_STA) ? "STA" : "AP";
+
+        if (WiFi.isConnected()) {
+            doc["ip"] = WiFi.localIP().toString();
+        } else {
+            doc["ip"] = WiFi.softAPIP().toString();
+        }
+
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
+    });
+
+    Logger::info("HTTP", "Provisioning routes registered");
 }
