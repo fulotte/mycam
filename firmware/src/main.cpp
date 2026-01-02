@@ -55,10 +55,11 @@ void setup() {
 
     // 初始化 LittleFS 文件系统
     if (!LittleFS.begin(true)) {
-        Logger::error("MAIN", "LittleFS mount failed!");
-    } else {
-        Logger::info("MAIN", "LittleFS mounted");
+        Logger::error("MAIN", "LittleFS mount failed, restarting...");
+        delay(1000);
+        ESP.restart();
     }
+    Logger::info("MAIN", "LittleFS mounted");
 
     // 初始化看门狗
     esp_task_wdt_init(10, true);
