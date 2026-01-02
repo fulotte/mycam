@@ -4,6 +4,12 @@
 int WiFiScanner::scan(NetworkInfo* networks, int maxNetworks) {
     Logger::info("SCAN", "开始扫描 WiFi 网络...");
 
+    // 参数验证
+    if (!networks || maxNetworks <= 0) {
+        Logger::error("SCAN", "无效参数");
+        return 0;
+    }
+
     // 扫描可用网络
     int n = WiFi.scanNetworks();
     Logger::info("SCAN", "发现 %d 个网络", n);
@@ -38,11 +44,10 @@ int WiFiScanner::scan(NetworkInfo* networks, int maxNetworks) {
 }
 
 int WiFiScanner::scanCount() {
-    // 扫描网络并返回数量
+    Logger::info("SCAN", "开始快速网络计数...");
     int n = WiFi.scanNetworks();
-
-    // 释放内存
     WiFi.scanDelete();
-
-    return n;
+    int result = (n > 0) ? n : 0;  // 确保返回非负数
+    Logger::info("SCAN", "发现 %d 个网络", result);
+    return result;
 }
