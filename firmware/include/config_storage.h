@@ -58,7 +58,7 @@ public:
         config.saved = doc["saved"] | false;
         config.lastSeen = doc["lastSeen"] | 0;
 
-        return config.saved;
+        return true;  // 表示成功从文件加载，config.saved 让调用者判断
     }
 
     bool saveConfig(const WiFiConfig& config) override {
