@@ -1,0 +1,31 @@
+{
+  "api_name": "mycam-api",
+  "description": "MyCam Camera Monitor API",
+  "stage_name": "prod",
+  "apis": [
+    {
+      "name": "upload-image",
+      "path": "/api/v1/images/upload",
+      "method": "POST",
+      "function": "upload-handler"
+    },
+    {
+      "name": "list-images",
+      "path": "/api/v1/images/list",
+      "method": "GET",
+      "function": "image-query"
+    },
+    {
+      "name": "device-token",
+      "path": "/api/v1/device/token",
+      "method": "POST",
+      "function": "device-manager"
+    },
+    {
+      "name": "device-register",
+      "path": "/api/v1/device/register",
+      "method": "POST",
+      "function": "device-manager"
+    }
+  ]
+}

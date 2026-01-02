@@ -1,0 +1,9 @@
+{
+  "name": "device-manager",
+  "version": "1.0.0",
+  "description": "Device management and STS token provider",
+  "main": "index.js",
+  "dependencies": {
+    "@alicloud/pop-core": "^1.7.12"
+  }
+}

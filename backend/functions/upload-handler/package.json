@@ -1,0 +1,9 @@
+{
+  "name": "upload-handler",
+  "version": "1.0.0",
+  "description": "Handle image upload metadata for MyCam",
+  "main": "index.js",
+  "dependencies": {
+    "tablestore": "^5.4.0"
+  }
+}

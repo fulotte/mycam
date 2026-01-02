@@ -1,0 +1,9 @@
+{
+  "name": "image-query",
+  "version": "1.0.0",
+  "description": "Query image list from Tablestore",
+  "main": "index.js",
+  "dependencies": {
+    "tablestore": "^5.4.0"
+  }
+}
