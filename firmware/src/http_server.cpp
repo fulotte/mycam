@@ -46,29 +46,59 @@ void HTTPServer::setupRoutes() {
         request->send(200, "text/html", html);
     });
 
-    // 实时视频流端点
+    // 实时视频流端点 (RGB565 格式，浏览器兼容)
     server.on("/stream", HTTP_GET, [this](AsyncWebServerRequest* request) {
         if (!currentFb) {
             request->send(503, "text/plain", "No image available");
             return;
         }
 
+        // RGB565 格式：width * height * 2 字节
+        size_t bmpDataSize = currentFb->width * currentFb->height * 2 + 54;  // +54 for BMP header
+        uint8_t* bmpBuffer = (uint8_t*)malloc(bmpDataSize);
+        if (!bmpBuffer) {
+            request->send(503, "text/plain", "Memory allocation failed");
+            return;
+        }
+
+        // 构建 BMP 文件头
+        uint8_t header[54] = {0};
+        header[0] = 'B';
+        header[1] = 'M';
+        uint32_t fileSize = bmpDataSize;
+        memcpy(header + 2, &fileSize, 4);
+        header[10] = 54;  // offset to pixel data
+        header[14] = 40;  // BITMAPINFOHEADER size
+        int32_t width = currentFb->width;
+        int32_t height = -currentFb->height;  // negative for top-down
+        memcpy(header + 18, &width, 4);
+        memcpy(header + 22, &height, 4);
+        header[26] = 1;  // planes
+        header[28] = 16;  // bits per pixel (RGB565)
+
+        memcpy(bmpBuffer, header, 54);
+        memcpy(bmpBuffer + 54, currentFb->buf, currentFb->len);
+
         AsyncWebServerResponse* response = request->beginResponse(
-            "image/jpeg",
-            currentFb->len,
-            [this](uint8_t* buffer, size_t maxLen, size_t index) -> size_t {
-                if (index >= currentFb->len) {
+            "image/bmp",
+            bmpDataSize,
+            [bmpBuffer](uint8_t* buffer, size_t maxLen, size_t index) -> size_t {
+                if (index >= bmpDataSize) {
+                    free(bmpBuffer);
                     return 0;
                 }
-                size_t toSend = currentFb->len - index;
+                size_t toSend = bmpDataSize - index;
                 if (toSend > maxLen) {
                     toSend = maxLen;
                 }
-                memcpy(buffer, currentFb->buf + index, toSend);
+                memcpy(buffer, bmpBuffer + index, toSend);
+                if (index + toSend >= bmpDataSize) {
+                    free(bmpBuffer);
+                }
                 return toSend;
             }
         );
-        response->addHeader("Content-Type", "image/jpeg");
+        response->addHeader("Content-Type", "image/bmp");
         response->addHeader("Cache-Control", "no-store, no-cache, must-revalidate");
         request->send(response);
     });

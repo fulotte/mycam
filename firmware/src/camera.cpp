@@ -43,11 +43,13 @@ bool Camera::init() {
     config.pin_pwdn = PWDN_GPIO_NUM;
     config.pin_reset = RESET_GPIO_NUM;
     config.xclk_freq_hz = 20000000;
-    config.pixel_format = PIXFORMAT_JPEG;
+    // 使用 RGB565 格式以便运动检测能直接访问像素数据
+    // JPEG 格式会导致像素访问错误（压缩数据不能直接访问）
+    config.pixel_format = PIXFORMAT_RGB565;
 
     // 初始化为高分辨率用于运动检测
     config.frame_size = CAMERA_FRAME_SIZE;
-    config.jpeg_quality = CAMERA_JPEG_QUALITY;
+    // RGB565 不需要 jpeg_quality 设置
     config.fb_count = CAMERA_FB_COUNT;
 
     // 初始化摄像头

@@ -34,13 +34,22 @@ void MotionDetector::processGrid(camera_fb_t* fb, uint8_t* grid) {
             for (int y = startY; y < endY; y += 2) {
                 for (int x = startX; x < endX; x += 2) {
                     if (y < imgHeight && x < imgWidth) {
-                        // JPEG 格式，需要解码像素
-                        // 简化：使用灰度近似
-                        int idx = (y * imgWidth + x) * 3;  // RGB
-                        if (idx + 2 < fb->len) {
-                            uint8_t r = fb->buf[idx];
-                            uint8_t g = fb->buf[idx + 1];
-                            uint8_t b = fb->buf[idx + 2];
+                        // RGB565 格式：2 字节/像素
+                        int idx = y * imgWidth + x;
+                        if (idx < fb->len / 2) {  // 检查 uint16_t 数组边界
+                            uint16_t pixel = ((uint16_t*)fb->buf)[idx];
+
+                            // 提取 RGB565 分量
+                            uint8_t r5 = (pixel >> 11) & 0x1F;  // 5 位红色
+                            uint8_t g6 = (pixel >> 5) & 0x3F;   // 6 位绿色
+                            uint8_t b5 = pixel & 0x1F;          // 5 位蓝色
+
+                            // 转换为 8 位 (扩展到 0-255)
+                            uint8_t r = (r5 << 3) | (r5 >> 2);
+                            uint8_t g = (g6 << 2) | (g6 >> 4);
+                            uint8_t b = (b5 << 3) | (b5 >> 2);
+
+                            // 计算感知灰度 (人眼对绿色更敏感)
                             sum += (r + g * 2 + b) / 4;
                             count++;
                         }
